@@ -11,9 +11,17 @@ def test_performance(size):
     
     # Exécuter le programme avec différentes tailles
     start = time.time()
-    subprocess.run(f"python contacts.py {size}", shell=True, check=True)
+    result = subprocess.run(f"python contacts.py {size}", 
+                          shell=True, 
+                          capture_output=True,
+                          text=True)
     end = time.time()
     
+    # Afficher uniquement les erreurs si présentes
+    if result.returncode != 0:
+        print(f"\nErreur pour taille {size}:")
+        print(result.stderr)
+        
     return (end - start) * 1000  # conversion en millisecondes
 
 # Tailles à tester
@@ -29,24 +37,3 @@ for size in sizes:
     time_ms = test_performance(size)
     results_without_index.append(time_ms)
     print(f"| {size:,} | {time_ms:.2f} |")
-
-# Création du graphique
-plt.figure(figsize=(10, 6))
-plt.plot(sizes, results_without_index, marker='o', linestyle='-', linewidth=2, markersize=8)
-plt.xscale('log')  # Échelle logarithmique pour l'axe x
-plt.yscale('log')  # Échelle logarithmique pour l'axe y
-plt.xlabel('Nombre de contacts')
-plt.ylabel('Temps (ms)')
-plt.title('Performance des requêtes sans index')
-plt.grid(True)
-
-# Ajout des annotations pour chaque point
-for i, (size, time) in enumerate(zip(sizes, results_without_index)):
-    plt.annotate(f'{time:.0f}ms', 
-                (size, time),
-                textcoords="offset points",
-                xytext=(0,10),
-                ha='center')
-
-plt.savefig('performance_sans_index.png')
-plt.close()
