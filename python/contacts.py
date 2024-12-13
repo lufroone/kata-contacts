@@ -2,6 +2,8 @@ import sys
 import sqlite3
 from pathlib import Path
 from datetime import datetime
+import subprocess
+import time
 
 
 class Contacts:
@@ -20,6 +22,9 @@ class Contacts:
                 )
               """
             )
+            cursor.execute("""
+                CREATE UNIQUE INDEX index_contacts_email ON contacts(email)
+            """)
             connection.commit()
         self.connection = sqlite3.connect(db_path)
         self.connection.row_factory = sqlite3.Row
@@ -27,12 +32,29 @@ class Contacts:
     def insert_contacts(self, contacts):
         print("Inserting contacts ...")
         cursor = self.connection.cursor()
-        cursor.executemany(
-            """
-            INSERT INTO contacts (name, email) VALUES (?, ?)
-            """,
-            contacts,
-        )
+        
+        # Début de la transaction
+        cursor.execute("BEGIN TRANSACTION")
+        
+        # Insertion par lots de 1000
+        batch = []
+        for contact in contacts:
+            batch.append(contact)
+            if len(batch) >= 1000:
+                cursor.executemany(
+                    "INSERT INTO contacts (name, email) VALUES (?, ?)",
+                    batch
+                )
+                batch = []
+        
+        # Insérer le dernier lot
+        if batch:
+            cursor.executemany(
+                "INSERT INTO contacts (name, email) VALUES (?, ?)",
+                batch
+            )
+        
+        # Valider la transaction
         self.connection.commit()
 
     def get_name_for_email(self, email):
