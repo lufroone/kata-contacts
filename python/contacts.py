@@ -82,26 +82,20 @@ class Contacts:
 
     def get_name_for_email(self, email):
         """Recherche un contact par email et mesure le temps de la requête"""
-        print(f"Recherche du contact avec l'email: {email}")
         cursor = self.connection.cursor()
         
-        start = time.time()  # Utilisation de time.time() pour plus de précision
-        
+        start = time.time()
         cursor.execute(
             "SELECT name FROM contacts WHERE email = ?",
             (email,)
         )
         row = cursor.fetchone()
-        
-        elapsed = (time.time() - start) * 1000  # Conversion en millisecondes
-        print(f"Requête effectuée en {elapsed:.2f} ms")
+        elapsed = (time.time() - start) * 1000
         
         if row:
             name = row["name"]
-            print(f"Contact trouvé: '{name}'")
-            return name
-        print("Contact non trouvé")
-        return None
+            return name, elapsed
+        return None, elapsed
 
 
 def yield_contacts(num_contacts):
@@ -112,15 +106,18 @@ def yield_contacts(num_contacts):
 
 def main():
     """Point d'entrée principal"""
-    if len(sys.argv) != 2:
-        print("Usage: python contacts.py <nombre_de_contacts>")
+    if len(sys.argv) < 2:
+        print("Usage: python contacts.py <nombre_de_contacts> [--with-index]")
         sys.exit(1)
         
     num_contacts = int(sys.argv[1])
+    with_index = "--with-index" in sys.argv
+    
     db_path = Path("contacts.sqlite3")
     contacts = Contacts(db_path)
     contacts.insert_contacts(yield_contacts(num_contacts))
-    contacts.create_email_index()
+    if with_index:
+        contacts.create_email_index()
     contacts.get_name_for_email(f"email-{num_contacts}@domain.tld")
 
 
